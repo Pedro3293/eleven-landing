@@ -46,6 +46,11 @@ export function SetRow({ index, targetReps, suggestedWeightKg, logged, usesWeigh
         <span>Serie {index + 1}</span>
         <span>Objetivo: {targetReps}{usesWeight && suggestedWeightKg != null ? ` · ${formatKg(suggestedWeightKg)}` : ''}</span>
       </div>
+      {usesWeight && suggestedWeightKg == null && index === 0 && (
+        <p className="text-xs text-muted">
+          Primera vez con este ejercicio: elige una carga que te deje {targetReps} reps con esfuerzo controlado. A partir de hoy, la sugerimos nosotros.
+        </p>
+      )}
       <div className="flex items-center gap-3">
         <Stepper label="Reps" value={reps} onChange={(v) => setReps(Math.max(0, v))} step={1} />
         {usesWeight && (

@@ -137,7 +137,7 @@ export function OnboardingWizard() {
         ) : (
           <span className="flex h-11 w-11 items-center justify-center text-accent"><Dumbbell className="h-6 w-6" /></span>
         )}
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="Progreso de la entrevista" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
           <div className="h-full rounded-full bg-accent transition-all duration-300" style={{ width: `${progress * 100}%` }} />
         </div>
       </header>

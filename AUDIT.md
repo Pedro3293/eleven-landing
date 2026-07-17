@@ -1,31 +1,40 @@
 # AUDIT.md — Estado de gates por iteración
 
-Última auditoría: **cierre de iteración 2** (2026-07-17).
+Última auditoría: **cierre de iteración 5 (final del loop)** · 2026-07-17.
 
-## Gates
+## Gates (auditoría final)
 
 | Gate | Estado | Evidencia |
 |---|---|---|
-| G1 Build | **PASA** | `npm run build` sin errores ni warnings de tipos (typecheck estricto limpio) |
-| G2 Tests | **PASA** | 41/41 unit en verde; cobertura motor >95% (gate ≥80%); 3/3 E2E Playwright (390px y 1440px) |
-| G3 Diseño | **PASA** (parcial: pulido fino en it. 4) | Tokens y componentes según DESIGN-SYSTEM.md; capturas en `docs/capturas/` a 390/768/1440 |
-| G4 Contenido | **PASA con defectos menores** | UI 100% ES; instrucciones ES del dataset; nombres de ejercicio traducidos por glosario con ~10-15% de resultados torpes (ver defectos) |
-| G5 Base de datos | **PASA** | Importación 1.324/1.324, 0 media rota, reimportación idempotente, migración reproducible (`prisma migrate reset`) |
-| G6 Responsive | **PASA** | E2E a 390px del flujo completo; test de overflow horizontal; targets ≥44px en componentes base |
-| G7 Rendimiento | PENDIENTE (aplica desde it. 4) | — |
-| G8 Seguridad | **PASA** (alcance it. 2) | Sin claves en cliente; cookies HMAC httpOnly; validación zod en toda la API; media route con protección de path traversal |
-| G9 Licencia | **PASA** | LICENSE-PLAN.md actualizado con la licencia real verificada; MEDIA_SOURCE=dev-dataset con warning en build; cero imports directos del JSON fuera de scripts/import |
+| G1 Build | **PASA** | `npm run build` sin errores; typecheck estricto limpio (0 errores TS) |
+| G2 Tests | **PASA** | Unit 41/41 verdes; cobertura del motor >95% (gate ≥80%); E2E 7/7 en móvil 390px y escritorio 1440px |
+| G3 Diseño | **PASA** | Design tokens + componentes según DESIGN-SYSTEM.md; capturas 390/768/1440 en `docs/capturas/`; revisión visual del player, onboarding, dashboard y progreso |
+| G4 Contenido | **PASA con defectos menores** | UI 100% en español; instrucciones ES del dataset (1.324/1.324); disclaimers en onboarding y chat; nombres de ejercicios con ~10% de traducciones torpes (D2-1, menor) |
+| G5 Base de datos | **PASA** | Importación 1.324/1.324 verificada, 0 rutas de media rotas, reimportación idempotente, migración reproducible desde cero |
+| G6 Responsive | **PASA** | 4 flujos críticos E2E a 390px; test anti-overflow; targets ≥44px en el design system |
+| G7 Rendimiento | **PASA** | Lighthouse móvil (build de producción): dashboard Perf 91; home Perf 100 / A11y 100 / BP 96; onboarding Perf 99 / A11y 95 (+fix de progressbar posterior) / BP 96. Player 155 kB First Load JS; 3D lazy fuera del player |
+| G8 Seguridad | **PASA** | Claves solo en servidor (agente IA server-side); cookies HMAC httpOnly; contraseñas scrypt; zod en toda la API; fotos en storage privado servidas solo al dueño (verificado 200/404); protección path-traversal en rutas de archivos; sin datos sensibles en logs |
+| G9 Licencia | **PASA** | LICENSE-PLAN.md con la licencia real verificada del dataset; MEDIA_SOURCE=dev-dataset con warning en build; el JSON solo se lee en `scripts/import-dataset.ts`; atribución © Gym visual visible junto a los GIFs |
 
-## Defectos abiertos
+**Resultado: G1–G9 en PASA, cero defectos críticos o mayores abiertos → condición de éxito del loop (§4) cumplida al cierre de la iteración 5.**
 
-| # | Sev. | Descripción | Plan |
+## Defectos abiertos (todos menores)
+
+| # | Sev. | Descripción | Recomendación |
 |---|---|---|---|
-| D2-1 | Menor | ~10-15% de nombres traducidos con orden/género torpe («Behind head press militar sentado con barra», «Hacia delante elevación en polea») | Ampliar glosario en it. 4 (pulido); nameEn siempre visible en ficha como respaldo |
-| D2-2 | Menor | Carga sugerida 0 kg en la primera sesión (sin historial); falta hint «elige tu carga inicial» | Microcopy en it. 4 |
-| D2-3 | Menor | Con lesión de hombro la selección de empuje queda muy conservadora (mayoría aislamiento/peso corporal) | Revisar reglas de exclusión (separar «carga directa» de «implicación secundaria») en it. 5 si hay margen |
+| D2-1 | Menor | ~10% de nombres de ejercicio con orden/género torpe («Extensión sentado en banco con mancuernas») | Pasada editorial sobre los ~130 peores con la app en uso; `nameEn` siempre disponible |
+| D2-3 | Menor | Exclusión por lesión conservadora: con «hombro» casi todo empuje queda fuera (secundarios cuentan) | Separar «carga directa» (excluir) de «implicación secundaria» (permitir con aviso) en v1.1 |
+| D5-1 | Menor | El chat IA requiere `ANTHROPIC_API_KEY` en runtime; sin ella opera degradado (mensaje + acciones manuales). E2E del flujo IA real pendiente de entorno con clave | Configurar la clave en el despliegue y validar manualmente los 3 casos del E2E de chat |
+| D5-2 | Menor | Vibración no disponible en Safari iOS (limitación de plataforma); las señales sonoras cubren el aviso | Nada que hacer en web; en Capacitor usar Haptics nativo |
 
-## Corregido en esta iteración
+## Corregido en iteración 5
 
-- **Crítico** slot con `targets` sin candidatos caía a cualquier aislamiento (curl de bíceps en día de empuje) → ahora el slot se omite. Verificado por API.
-- **Mayor** reimportación del dataset rompía con FK de sesiones existentes → upsert idempotente.
-- Duplicados de conectores en nombres («sobre sobre fitball») → colapso en composición.
+- A11y: progressbar del onboarding sin nombre accesible (fallo Lighthouse) → `aria-label`.
+- D2-2: microcopy de primera carga («elige una carga que te deje X reps…») en la primera serie sin historial.
+- Glosario: `behind head` → «tras nuca», `forward raise` → «elevación frontal».
+- E2E: carrera de hidratación en el primer paso del onboarding (fill antes de hidratar) → reintento hasta hidratación.
+
+## Histórico
+
+- **It. 2:** crítico corregido (slot con `targets` caía a aislamiento arbitrario); mayor corregido (reimportación rompía FKs).
+- **It. 3-4:** sin críticos; verificaciones de seguridad de fotos y auth por API.
