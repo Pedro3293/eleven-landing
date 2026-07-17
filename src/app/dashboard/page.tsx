@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { Dumbbell, Flame } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronRight, Dumbbell, Flame, LineChart } from 'lucide-react';
 import { getCurrentUserId } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { getActivePlan, parsePlanState } from '@/lib/services/plan-service';
@@ -70,6 +71,19 @@ export default async function DashboardPage() {
           <span className="text-xs text-muted">días por semana</span>
         </Card>
       </div>
+
+      <Link href="/progress" className="block">
+        <Card className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-control bg-surface-2 text-accent">
+            <LineChart className="h-5 w-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-semibold">Progreso y check-ins</p>
+            <p className="text-xs text-muted">Volumen, cargas, adherencia y fotos</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-muted" aria-hidden />
+        </Card>
+      </Link>
 
       <section>
         <h2 className="mb-2 text-sm font-medium text-muted">Plan: {plan.methodology.name}</h2>

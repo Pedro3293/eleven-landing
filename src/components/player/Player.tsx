@@ -8,7 +8,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Flag, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Flag, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 import type { SessionDTO, SessionExerciseDTO } from '@/lib/services/serialize';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
@@ -26,6 +27,7 @@ export function Player({ initial }: { initial: SessionDTO }) {
   const [currentIdx, setCurrentIdx] = useState(() => firstPendingIndex(initial.exercises));
   const [rest, setRest] = useState<{ remaining: number; total: number } | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [finished, setFinished] = useState<SessionDTO | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -198,13 +200,22 @@ export function Player({ initial }: { initial: SessionDTO }) {
               </p>
               <h1 className="text-xl font-semibold leading-tight">{current.exercise.name}</h1>
             </div>
-            <button
-              onClick={() => setActionsOpen(true)}
-              aria-label="Más acciones para este ejercicio"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-muted active:text-ink"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                onClick={() => setChatOpen(true)}
+                aria-label="Preguntar al entrenador"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface-2 text-muted active:text-ink"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setActionsOpen(true)}
+                aria-label="Más acciones para este ejercicio"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface-2 text-muted active:text-ink"
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <ExerciseView se={current} onLogSet={(setIndex, data) => void logSet(current, setIndex, data)} />
@@ -252,6 +263,20 @@ export function Player({ initial }: { initial: SessionDTO }) {
         onAddSet={() => void exerciseAction(current, 'add-set')}
         onSubstitute={(id) => void exerciseAction(current, 'substitute', id)}
       />
+
+      <Sheet open={chatOpen} onClose={() => setChatOpen(false)} title="Tu entrenador">
+        <div className="h-[60dvh]">
+          <ChatPanel
+            context={`session:${session.id}`}
+            onToolsUsed={() => void refresh()}
+            suggestions={[
+              'Me molesta este ejercicio, cámbialo',
+              '¿Cómo hago bien este ejercicio?',
+              'Hoy voy corto de tiempo, recorta la sesión',
+            ]}
+          />
+        </div>
+      </Sheet>
 
       <Sheet open={finishOpen} onClose={() => setFinishOpen(false)} title="¿Terminar la sesión?">
         <p className="mb-4 text-sm text-muted">
