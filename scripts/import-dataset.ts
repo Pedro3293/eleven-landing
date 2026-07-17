@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import { translateExerciseName } from '../src/lib/dataset/translate-name';
 import { classifyMovementPattern, isCompound } from '../src/lib/dataset/movement-pattern';
+import { METHODOLOGIES } from '../src/lib/engine/methodologies';
 
 const DATASET_ROOT = join(process.cwd(), 'vendor', 'exercises-dataset');
 const EXPECTED_COUNT = 1324;
@@ -92,6 +93,16 @@ async function main() {
       await tx.exercise.createMany({ data: rows.slice(i, i + chunk) });
     }
   });
+
+  // Seed del catálogo de metodologías (idempotente)
+  for (const m of METHODOLOGIES) {
+    await prisma.methodology.upsert({
+      where: { id: m.id },
+      create: { id: m.id, name: m.name, description: m.description, config: JSON.stringify(m) },
+      update: { name: m.name, description: m.description, config: JSON.stringify(m) },
+    });
+  }
+  console.log(`Metodologías: ${METHODOLOGIES.length} seed OK`);
 
   const count = await prisma.exercise.count();
   console.log(`Importados: ${count}/${EXPECTED_COUNT}`);
