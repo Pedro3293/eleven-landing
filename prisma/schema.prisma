@@ -29,6 +29,7 @@ model Profile {
   goal              String // fuerza | hipertrofia | perdida_grasa | salud_general | rendimiento
   experience        String // principiante | intermedio | avanzado
   injuries          String   @default("[]") // JSON: zonas a evitar (p.ej. ["hombro","rodilla"])
+  healthConditions  String   @default("[]") // JSON: condiciones declaradas (claves de la base de conocimiento de salud)
   equipment         String   @default("[]") // JSON: equipamiento disponible (claves del dataset)
   daysPerWeek       Int
   minutesPerSession Int

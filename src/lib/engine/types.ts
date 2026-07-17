@@ -101,6 +101,8 @@ export interface ProfileInput {
   goal: Goal;
   experience: Experience;
   injuries: string[];
+  /** Condiciones de salud declaradas (claves de la base de conocimiento de salud). */
+  healthConditions?: string[];
   equipment: string[];
   daysPerWeek: number;
   minutesPerSession: number;

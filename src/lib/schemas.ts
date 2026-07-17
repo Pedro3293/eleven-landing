@@ -22,11 +22,32 @@ export const EQUIPMENT_OPTIONS: { key: string; label: string }[] = [
   { key: 'wheel roller', label: 'Rueda abdominal' },
 ];
 
+/** Condiciones de salud declarables: claves de la base de conocimiento de salud. */
+export const HEALTH_CONDITIONS: { key: string; label: string }[] = [
+  { key: 'hipotiroidismo', label: 'Hipotiroidismo' },
+  { key: 'hipertiroidismo', label: 'Hipertiroidismo' },
+  { key: 'diabetes-tipo-1', label: 'Diabetes tipo 1' },
+  { key: 'diabetes-tipo-2', label: 'Diabetes tipo 2' },
+  { key: 'hipertension', label: 'Hipertensión' },
+  { key: 'asma', label: 'Asma' },
+  { key: 'obesidad', label: 'Obesidad' },
+  { key: 'osteoporosis', label: 'Osteoporosis' },
+  { key: 'artrosis', label: 'Artrosis / dolor articular' },
+  { key: 'lumbalgia', label: 'Dolor lumbar crónico' },
+  { key: 'cardiopatia', label: 'Cardiopatía' },
+  { key: 'anemia', label: 'Anemia' },
+  { key: 'fibromialgia', label: 'Fibromialgia' },
+  { key: 'embarazo', label: 'Embarazo / posparto' },
+];
+
+const HEALTH_KEYS = HEALTH_CONDITIONS.map((c) => c.key) as [string, ...string[]];
+
 export const profileSchema = z.object({
   displayName: z.string().trim().min(1, 'Dinos cómo llamarte').max(60),
   goal: z.enum(GOALS),
   experience: z.enum(EXPERIENCES),
   injuries: z.array(z.enum(INJURY_ZONES)).default([]),
+  healthConditions: z.array(z.enum(HEALTH_KEYS)).default([]),
   equipment: z.array(z.string().max(40)).max(30).default([]),
   daysPerWeek: z.number().int().min(1).max(7),
   minutesPerSession: z.number().int().min(15).max(240),

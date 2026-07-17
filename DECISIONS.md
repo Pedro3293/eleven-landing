@@ -42,3 +42,13 @@ Formato: **D-N · [iteración] decisión — porqué.**
 - **D-10 · [I0] PWA con service worker propio (sin next-pwa/serwist).** Un SW hecho a mano de ~100
   líneas cubre el requisito (app shell + sesión en curso offline + media cache) con menos
   dependencias frágiles que los wrappers.
+
+## Post-loop
+
+- **D-12 · [post] «Entrenar la IA» = base de conocimiento curada + adaptación del motor, no
+  fine-tuning.** No es posible reentrenar pesos del modelo desde la app; la vía correcta y
+  auditable es un corpus propio en `src/lib/ai/knowledge/` (ciencias del deporte, metodologías,
+  acondicionamiento y 15 condiciones de salud con derivación obligatoria) consultado por el agente
+  vía tool, usado también como respuesta local sin clave, más condiciones declarables en el perfil
+  (`Profile.healthConditions`) con ajustes automáticos conservadores en el generador
+  (`condition-adjustments.ts`). Ver `docs/CONOCIMIENTO.md`.

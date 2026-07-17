@@ -14,6 +14,7 @@ export const POST = withErrorHandling(async (req: Request) => {
       goal: body.goal,
       experience: body.experience,
       injuries: body.injuries,
+      healthConditions: body.healthConditions,
       equipment: body.equipment,
       daysPerWeek: body.daysPerWeek,
       minutesPerSession: body.minutesPerSession,

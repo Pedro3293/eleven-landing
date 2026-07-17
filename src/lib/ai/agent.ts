@@ -8,6 +8,7 @@ import { config } from '@/lib/config';
 import { prisma } from '@/lib/db';
 import { SYSTEM_PROMPT } from './system-prompt';
 import { TOOL_DEFINITIONS, executeTool } from './tools';
+import { searchKnowledge } from './knowledge';
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5';
 const MAX_TURNS = 6;
@@ -23,12 +24,16 @@ export async function runAgent(userId: string, threadId: string, userMessage: st
   await prisma.chatMessage.create({ data: { threadId, role: 'user', content: userMessage } });
 
   if (!config.aiEnabled) {
-    const text =
-      'El entrenador IA no está configurado en este servidor (falta ANTHROPIC_API_KEY). ' +
-      'Puedes seguir entrenando con normalidad: sustituir ejercicios, ajustar series y descansos desde el propio player. ' +
-      'Cuando la clave esté configurada, aquí tendrás respuestas y cambios de plan al momento.';
+    // Modo degradado con conocimiento local: si la pregunta casa con la base
+    // curada, se responde con ella; los cambios de sesión siguen siendo manuales.
+    const hits = searchKnowledge(userMessage, { limit: 1 });
+    const text = hits.length
+      ? `${hits[0].title}\n\n${hits[0].content}\n\n—\nRespuesta de la guía integrada (el chat IA completo no está configurado en este servidor). Recuerda: esto es información general, no un diagnóstico; ante síntomas o dudas médicas, consulta a un profesional sanitario.`
+      : 'El entrenador IA no está configurado en este servidor (falta ANTHROPIC_API_KEY). ' +
+        'Aun así puedo ayudarte con la guía integrada: pregúntame por hipertrofia, fuerza, metodologías, HIIT, o cómo entrenar con hipotiroidismo, diabetes, hipertensión, asma y otras condiciones. ' +
+        'Los cambios de la sesión (sustituir, saltar, añadir series) los tienes en el menú del player.';
     await prisma.chatMessage.create({ data: { threadId, role: 'assistant', content: text } });
-    return { text, toolsUsed: [], degraded: true };
+    return { text, toolsUsed: hits.length ? ['search_knowledge'] : [], degraded: true };
   }
 
   const client = new Anthropic({ apiKey: config.anthropicApiKey });

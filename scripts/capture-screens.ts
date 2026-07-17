@@ -44,6 +44,7 @@ async function main() {
     await page.getByRole('button', { name: 'Gimnasio completo' }).click();
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await page.getByRole('button', { name: 'Ninguna, todo bien' }).click();
+    await page.getByRole('button', { name: 'Ninguna', exact: true }).click();
     await page.getByRole('button', { name: 'Siguiente' }).click();
     await page.getByRole('button', { name: 'Ver mi plan' }).click();
     await page.getByText('Recomendada').waitFor({ timeout: 15000 });

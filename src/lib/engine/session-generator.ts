@@ -8,6 +8,7 @@
 import type { ExerciseDTO, ExerciseRepository } from '@/lib/repository/exercise-repository';
 import { createRng } from './rng';
 import { isDeloadSession, initialProgressState } from './progression';
+import { getConditionAdjustments, type ConditionAdjustments } from './condition-adjustments';
 import type {
   ExerciseSlot,
   GeneratedExercise,
@@ -45,14 +46,16 @@ export async function generateSession(
 
   // Lesiones activas = perfil + molestias recientes de check-ins
   const injuries = [...new Set([...profile.injuries, ...(feedback?.painZones ?? [])])];
-  const highFatigue = (feedback?.avgRpe ?? 0) >= 9 || (feedback?.avgEnergy ?? 5) <= 2;
+  const conditions = getConditionAdjustments(profile.healthConditions ?? []);
+  const highFatigue =
+    (feedback?.avgRpe ?? 0) >= 9 || (feedback?.avgEnergy ?? 5) <= 2 || conditions.conservativeVolume;
 
   const exercises: GeneratedExercise[] = [];
   const usedIds = new Set<string>();
 
   for (let slotIndex = 0; slotIndex < day.slots.length; slotIndex++) {
     const slot = day.slots[slotIndex];
-    const chosen = await pickExercise(repo, { config, profile, state, day: day.key, slot, slotIndex, rng, injuries, usedIds });
+    const chosen = await pickExercise(repo, { config, profile, state, day: day.key, slot, slotIndex, rng, injuries, usedIds, conditions });
     if (!chosen) continue; // sin candidato viable (material/lesión): el slot se omite
 
     usedIds.add(chosen.id);
@@ -76,7 +79,7 @@ export async function generateSession(
       repsMin: slot.repsMin,
       repsMax: slot.repsMax,
       targetWeightKg: weight,
-      restSeconds: slot.restSeconds,
+      restSeconds: Math.round((slot.restSeconds * conditions.restFactor) / 5) * 5,
       tempo: slot.tempo,
       mode: slot.mode ?? 'straight',
       modeSeconds: slot.modeSeconds,
@@ -114,10 +117,11 @@ interface PickContext {
   rng: ReturnType<typeof createRng>;
   injuries: string[];
   usedIds: Set<string>;
+  conditions: ConditionAdjustments;
 }
 
 async function pickExercise(repo: ExerciseRepository, ctx: PickContext): Promise<ExerciseDTO | null> {
-  const { profile, state, day, slot, slotIndex, rng, injuries, usedIds } = ctx;
+  const { profile, state, day, slot, slotIndex, rng, injuries, usedIds, conditions } = ctx;
   const slotKey = `${day}:${slotIndex}`;
   const equipmentIn = effectiveEquipment(ctx.config, profile);
 
@@ -128,6 +132,7 @@ async function pickExercise(repo: ExerciseRepository, ctx: PickContext): Promise
     if (
       prev &&
       equipmentIn.includes(prev.equipment) &&
+      !conditions.excludeExercise(prev) &&
       (await repo.find({ pattern: prev.movementPattern, equipmentIn: [prev.equipment], excludeInjuries: injuries, limit: 1000 })).some((e) => e.id === prev.id)
     ) {
       return prev;
@@ -141,7 +146,7 @@ async function pickExercise(repo: ExerciseRepository, ctx: PickContext): Promise
       equipmentIn,
       excludeInjuries: injuries,
     });
-    candidates = candidates.filter((c) => !usedIds.has(c.id));
+    candidates = candidates.filter((c) => !usedIds.has(c.id) && !conditions.excludeExercise(c));
     if (slot.targets?.length) {
       // Sin candidatos del músculo pedido, el slot no se rellena con otra cosa:
       // mejor omitirlo que meter un ejercicio que no toca (p.ej. bíceps en día de empuje).

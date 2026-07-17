@@ -32,6 +32,7 @@ export function profileToInput(profile: {
   goal: string;
   experience: string;
   injuries: string;
+  healthConditions?: string;
   equipment: string;
   daysPerWeek: number;
   minutesPerSession: number;
@@ -41,6 +42,7 @@ export function profileToInput(profile: {
     goal: profile.goal as ProfileInput['goal'],
     experience: profile.experience as ProfileInput['experience'],
     injuries: JSON.parse(profile.injuries) as string[],
+    healthConditions: JSON.parse(profile.healthConditions ?? '[]') as string[],
     equipment: JSON.parse(profile.equipment) as string[],
     daysPerWeek: profile.daysPerWeek,
     minutesPerSession: profile.minutesPerSession,
@@ -77,6 +79,7 @@ export async function createProfileAndPlan(userId: string, args: CreatePlanArgs)
         goal: profile.goal,
         experience: profile.experience,
         injuries: JSON.stringify(profile.injuries),
+        healthConditions: JSON.stringify(profile.healthConditions ?? []),
         equipment: JSON.stringify(profile.equipment),
         daysPerWeek: profile.daysPerWeek,
         minutesPerSession: profile.minutesPerSession,
@@ -87,6 +90,7 @@ export async function createProfileAndPlan(userId: string, args: CreatePlanArgs)
         goal: profile.goal,
         experience: profile.experience,
         injuries: JSON.stringify(profile.injuries),
+        healthConditions: JSON.stringify(profile.healthConditions ?? []),
         equipment: JSON.stringify(profile.equipment),
         daysPerWeek: profile.daysPerWeek,
         minutesPerSession: profile.minutesPerSession,

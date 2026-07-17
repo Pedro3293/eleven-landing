@@ -17,6 +17,7 @@ import {
   substituteExercise,
 } from '@/lib/services/plan-service';
 import { getMethodology } from '@/lib/engine/methodologies';
+import { searchKnowledge, type KnowledgeCategory } from '@/lib/ai/knowledge';
 
 export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
   {
@@ -32,6 +33,7 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       properties: {
         goal: { type: 'string', enum: ['fuerza', 'hipertrofia', 'perdida_grasa', 'salud_general', 'rendimiento'] },
         injuries: { type: 'array', items: { type: 'string' }, description: 'Zonas a proteger: hombro, codo, muñeca, cuello, espalda_baja, espalda_alta, cadera, rodilla, tobillo' },
+        healthConditions: { type: 'array', items: { type: 'string' }, description: 'Condiciones de salud declaradas: hipotiroidismo, hipertiroidismo, diabetes-tipo-1, diabetes-tipo-2, hipertension, asma, obesidad, osteoporosis, artrosis, lumbalgia, cardiopatia, anemia, fibromialgia, embarazo' },
         equipment: { type: 'array', items: { type: 'string' } },
         daysPerWeek: { type: 'integer', minimum: 1, maximum: 7 },
         minutesPerSession: { type: 'integer', minimum: 15, maximum: 240 },
@@ -54,6 +56,19 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
     name: 'get_history',
     description: 'Historial reciente: últimas sesiones completadas y feedback (RPE medio, molestias).',
     input_schema: { type: 'object', properties: { limit: { type: 'integer', maximum: 20 } }, required: [] },
+  },
+  {
+    name: 'search_knowledge',
+    description:
+      'Consulta la base de conocimiento del entrenador: ciencias del deporte (hipertrofia, fuerza, periodización, RPE, recuperación...), metodologías, acondicionamiento (HIIT/EMOM/AMRAP, cardio+fuerza) y condiciones de salud que afectan al rendimiento (hipotiroidismo, diabetes, hipertensión, asma, osteoporosis, artrosis, lumbalgia, cardiopatías, anemia, fibromialgia, embarazo, tendinopatías...). Úsala SIEMPRE antes de responder sobre estos temas y cita sus pautas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Tema o pregunta, p.ej. "diabetes tipo 1" o "cómo progresar en dominadas"' },
+        category: { type: 'string', enum: ['ciencia', 'metodologia', 'acondicionamiento', 'salud'] },
+      },
+      required: ['query'],
+    },
   },
   {
     name: 'explain_exercise',
@@ -110,6 +125,7 @@ export async function executeTool(userId: string, name: string, input: Record<st
         objetivo: p.goal,
         experiencia: p.experience,
         lesiones: JSON.parse(p.injuries),
+        condicionesDeSalud: JSON.parse(p.healthConditions),
         equipamiento: JSON.parse(p.equipment),
         diasPorSemana: p.daysPerWeek,
         minutosPorSesion: p.minutesPerSession,
@@ -120,6 +136,7 @@ export async function executeTool(userId: string, name: string, input: Record<st
       const data: Record<string, unknown> = {};
       if (input.goal) data.goal = String(input.goal);
       if (input.injuries) data.injuries = JSON.stringify(input.injuries);
+      if (input.healthConditions) data.healthConditions = JSON.stringify(input.healthConditions);
       if (input.equipment) data.equipment = JSON.stringify(input.equipment);
       if (typeof input.daysPerWeek === 'number') data.daysPerWeek = input.daysPerWeek;
       if (typeof input.minutesPerSession === 'number') data.minutesPerSession = input.minutesPerSession;
@@ -187,6 +204,14 @@ export async function executeTool(userId: string, name: string, input: Record<st
           })),
         })),
       });
+    }
+    case 'search_knowledge': {
+      const entries = searchKnowledge(String(input.query ?? ''), {
+        category: input.category as KnowledgeCategory | undefined,
+        limit: 3,
+      });
+      if (entries.length === 0) return JSON.stringify({ resultado: 'Sin entradas para esa consulta; responde con tu criterio general y prudencia.' });
+      return JSON.stringify(entries.map((e) => ({ titulo: e.title, categoria: e.category, contenido: e.content })));
     }
     case 'explain_exercise': {
       const results = await exerciseRepository.find({ search: String(input.query ?? ''), limit: 3 });

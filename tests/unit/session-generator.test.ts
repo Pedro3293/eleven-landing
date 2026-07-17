@@ -145,6 +145,33 @@ describe('generateSession — deload y autorregulación', () => {
   });
 });
 
+describe('generateSession — condiciones de salud', () => {
+  it('hipertensión alarga los descansos generados', async () => {
+    const normal = await generateSession(repo, { config: ppl, profile: baseProfile, state: emptyState(), seed: 'hc', sessionIndex: 1 });
+    const hta = await generateSession(repo, {
+      config: ppl,
+      profile: { ...baseProfile, healthConditions: ['hipertension'] },
+      state: emptyState(),
+      seed: 'hc',
+      sessionIndex: 1,
+    });
+    expect(hta.exercises[0].restSeconds).toBeGreaterThan(normal.exercises[0].restSeconds);
+  });
+
+  it('hipotiroidismo recorta volumen accesorio como la fatiga alta', async () => {
+    const normal = await generateSession(repo, { config: ppl, profile: baseProfile, state: emptyState(), seed: 'hc', sessionIndex: 1 });
+    const hipo = await generateSession(repo, {
+      config: ppl,
+      profile: { ...baseProfile, healthConditions: ['hipotiroidismo'] },
+      state: emptyState(),
+      seed: 'hc',
+      sessionIndex: 1,
+    });
+    const acc = (s: typeof normal) => s.exercises.filter((e) => e.role !== 'main').reduce((t, e) => t + e.sets, 0);
+    expect(acc(hipo)).toBeLessThan(acc(normal));
+  });
+});
+
 describe('generateSession — presupuesto de tiempo', () => {
   it('descarta slots opcionales cuando la sesión no cabe', async () => {
     const short = { ...baseProfile, minutesPerSession: 30 };

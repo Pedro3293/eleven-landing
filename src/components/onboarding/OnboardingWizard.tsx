@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { EQUIPMENT_OPTIONS } from '@/lib/schemas';
+import { EQUIPMENT_OPTIONS, HEALTH_CONDITIONS } from '@/lib/schemas';
 import { INJURY_ZONE_LABELS, INJURY_ZONES } from '@/lib/repository/injury-map';
 
 type Recommendation = {
@@ -54,6 +54,8 @@ export function OnboardingWizard() {
   const [equipment, setEquipment] = useState<string[]>([]);
   const [injuries, setInjuries] = useState<string[]>([]);
   const [noInjuries, setNoInjuries] = useState(false);
+  const [healthConditions, setHealthConditions] = useState<string[]>([]);
+  const [noConditions, setNoConditions] = useState(false);
   const [bodyweight, setBodyweight] = useState('');
   const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
   const [chosenMethodology, setChosenMethodology] = useState<string | null>(null);
@@ -69,12 +71,13 @@ export function OnboardingWizard() {
       goal,
       experience,
       injuries,
+      healthConditions,
       equipment,
       daysPerWeek,
       minutesPerSession,
       bodyweightKg: bodyweight ? Number(bodyweight) : undefined,
     }),
-    [displayName, goal, experience, injuries, equipment, daysPerWeek, minutesPerSession, bodyweight],
+    [displayName, goal, experience, injuries, healthConditions, equipment, daysPerWeek, minutesPerSession, bodyweight],
   );
 
   const goTo = (s: Step) => {
@@ -270,11 +273,35 @@ export function OnboardingWizard() {
                   />
                 ))}
               </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-muted">¿Y alguna condición de salud que debamos conocer?</span>
+                <div className="flex flex-wrap gap-2">
+                  <Chip
+                    label="Ninguna"
+                    selected={noConditions}
+                    onToggle={() => { setNoConditions(true); setHealthConditions([]); }}
+                  />
+                  {HEALTH_CONDITIONS.map((c) => (
+                    <Chip
+                      key={c.key}
+                      label={c.label}
+                      selected={healthConditions.includes(c.key)}
+                      onToggle={() => {
+                        setNoConditions(false);
+                        setHealthConditions((prev) => (prev.includes(c.key) ? prev.filter((k) => k !== c.key) : [...prev, c.key]));
+                      }}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-muted">
+                  El plan se adaptará (descansos, volumen, ejercicios) y tu entrenador lo tendrá en cuenta en cada respuesta.
+                </p>
+              </div>
               <p className="flex items-start gap-2 text-xs text-muted">
                 <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                Esto no es un diagnóstico: si una molestia persiste, acude a un fisioterapeuta o médico.
+                Esto no es un diagnóstico ni sustituye a tu médico: entrena con patología solo con su visto bueno.
               </p>
-              <Button size="lg" disabled={!noInjuries && injuries.length === 0} onClick={() => goTo('peso')}>Siguiente</Button>
+              <Button size="lg" disabled={(!noInjuries && injuries.length === 0) || (!noConditions && healthConditions.length === 0)} onClick={() => goTo('peso')}>Siguiente</Button>
             </StepShell>
           )}
 

@@ -30,6 +30,7 @@ test('onboarding completo genera plan y permite completar una sesión', async ({
   await page.getByRole('button', { name: 'Siguiente' }).click();
 
   await page.getByRole('button', { name: 'Ninguna, todo bien' }).click();
+  await page.getByRole('button', { name: 'Ninguna', exact: true }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
 
   await page.getByLabel('Peso corporal (kg)').fill('78');
