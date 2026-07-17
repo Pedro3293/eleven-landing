@@ -1,49 +1,36 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss';
 
+// Los valores viven como variables CSS en globals.css (design tokens de DESIGN-SYSTEM.md);
+// Tailwind solo los referencia, así el acento es configurable con una sola línea.
 const config: Config = {
-  content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
+  content: ['./src/**/*.{ts,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        black: {
-          950: "#0A0A0A",
-          900: "#121212",
-        },
-        gray: {
-          800: "#1C1C1E",
-          700: "#2A2A2C",
-          600: "#3D3D40",
-          400: "#8A8A8E",
-          300: "#A8A8AC",
-        },
-        white: {
-          DEFAULT: "#F5F5F2",
-          pure: "#FFFFFF",
-        },
-        red: {
-          700: "#7A1818",
-          600: "#A32020",
-        },
-        steel: {
-          600: "#6E7681",
-          400: "#8A94A0",
-        },
+        bg: 'rgb(var(--bg) / <alpha-value>)',
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        'surface-2': 'rgb(var(--surface-2) / <alpha-value>)',
+        line: 'rgb(var(--line) / <alpha-value>)',
+        ink: 'rgb(var(--ink) / <alpha-value>)',
+        muted: 'rgb(var(--muted) / <alpha-value>)',
+        accent: 'rgb(var(--accent) / <alpha-value>)',
+        'accent-ink': 'rgb(var(--accent-ink) / <alpha-value>)',
+        danger: 'rgb(var(--danger) / <alpha-value>)',
+        success: 'rgb(var(--success) / <alpha-value>)',
+        warn: 'rgb(var(--warn) / <alpha-value>)',
+      },
+      borderRadius: {
+        card: 'var(--radius-card)',
+        control: 'var(--radius-control)',
       },
       fontFamily: {
-        heading: ["var(--font-oswald)", "sans-serif"],
-        body: ["var(--font-inter)", "sans-serif"],
-      },
-      boxShadow: {
-        card: "0 4px 12px rgba(0,0,0,0.40)",
-        "card-hover": "0 20px 40px -8px rgba(0,0,0,0.50)",
-        elevated: "0 8px 24px rgba(0,0,0,0.45)",
+        sans: ['var(--font-sans)'],
+        display: ['var(--font-display)'],
       },
     },
   },
   plugins: [],
 };
+
 export default config;
