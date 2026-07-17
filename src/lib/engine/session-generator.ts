@@ -143,8 +143,9 @@ async function pickExercise(repo: ExerciseRepository, ctx: PickContext): Promise
     });
     candidates = candidates.filter((c) => !usedIds.has(c.id));
     if (slot.targets?.length) {
-      const targeted = candidates.filter((c) => slot.targets!.includes(c.target) || slot.targets!.includes(c.muscleGroup));
-      if (targeted.length > 0) candidates = targeted;
+      // Sin candidatos del músculo pedido, el slot no se rellena con otra cosa:
+      // mejor omitirlo que meter un ejercicio que no toca (p.ej. bíceps en día de empuje).
+      candidates = candidates.filter((c) => slot.targets!.includes(c.target) || slot.targets!.includes(c.muscleGroup));
     }
     if (slot.preferCompound) {
       const compound = candidates.filter((c) => c.isCompound);

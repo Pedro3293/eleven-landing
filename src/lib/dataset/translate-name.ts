@@ -18,6 +18,8 @@ const EXACT: Record<string, string> = {
   'superman': 'Superman',
   'inchworm': 'Oruga (inchworm)',
   'wall sit': 'Sentadilla isométrica en pared',
+  'shoulder tap push-up': 'Flexión con toque de hombro',
+  'dumbbell around pullover': 'Pullover circular con mancuernas',
   'farmers walk': 'Paseo del granjero',
   "farmer's walk": 'Paseo del granjero',
 };
@@ -513,7 +515,13 @@ export function translateExerciseName(nameEn: string, equipment?: string): strin
   const coreEs = translateFragment(core);
 
   const parts = [coreEs, ...modSuffixes, ...suffixes, ...notes].filter(Boolean);
-  return cap(parts.join(' ').replace(/\s+/g, ' ').trim());
+  const joined = parts
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    // colapsa duplicados de conectores generados por composición ("sobre sobre fitball")
+    .replace(/\b(sobre|con|en|de|a) \1\b/g, '$1')
+    .trim();
+  return cap(joined);
 }
 
 function escapeRe(s: string): string {

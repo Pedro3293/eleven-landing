@@ -85,14 +85,17 @@ async function main() {
     };
   });
 
-  await prisma.$transaction(async (tx) => {
-    await tx.exercise.deleteMany();
-    // createMany por lotes (SQLite limita variables por sentencia)
-    const chunk = 200;
-    for (let i = 0; i < rows.length; i += chunk) {
-      await tx.exercise.createMany({ data: rows.slice(i, i + chunk) });
-    }
-  });
+  // Upsert idempotente: reimportar no rompe las sesiones que ya referencian ejercicios
+  const ids = rows.map((r) => r.id);
+  await prisma.exercise.deleteMany({ where: { id: { notIn: ids } } });
+  const chunk = 100;
+  for (let i = 0; i < rows.length; i += chunk) {
+    await prisma.$transaction(
+      rows.slice(i, i + chunk).map((row) =>
+        prisma.exercise.upsert({ where: { id: row.id }, create: row, update: row }),
+      ),
+    );
+  }
 
   // Seed del catálogo de metodologías (idempotente)
   for (const m of METHODOLOGIES) {
