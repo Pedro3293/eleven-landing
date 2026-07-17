@@ -1,0 +1,202 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  profile  Profile?
+  plans    Plan[]
+  sessions Session[]
+  checkIns CheckIn[]
+  photos   ProgressPhoto[]
+  threads  ChatThread[]
+}
+
+model Profile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName       String
+  goal              String // fuerza | hipertrofia | perdida_grasa | salud_general | rendimiento
+  experience        String // principiante | intermedio | avanzado
+  injuries          String   @default("[]") // JSON: zonas a evitar (p.ej. ["hombro","rodilla"])
+  equipment         String   @default("[]") // JSON: equipamiento disponible (claves del dataset)
+  daysPerWeek       Int
+  minutesPerSession Int
+  bodyweightKg      Float?
+  heightCm          Float?
+  birthYear         Int?
+  preferences       String   @default("{}") // JSON libre (unidades, acento, avisos)
+  updatedAt         DateTime @updatedAt
+}
+
+// Ejercicio importado del dataset. Nunca se lee directamente: siempre vía ExerciseRepository.
+model Exercise {
+  id               String  @id // id del dataset, p.ej. "0001"
+  name             String // nombre en español (traducido en importación)
+  nameEn           String
+  category         String
+  bodyPart         String
+  target           String
+  muscleGroup      String
+  secondaryMuscles String  @default("[]") // JSON array
+  equipment        String
+  movementPattern  String // squat|hinge|lunge|push_h|push_v|pull_h|pull_v|core|isolation|cardio|carry
+  isCompound       Boolean @default(false)
+  instructionsEs   String  @default("[]") // JSON array de pasos en español
+  imagePath        String // ruta lógica servida por /api/media
+  gifPath          String
+  attribution      String  @default("")
+  source           String  @default("dev-dataset")
+
+  sessionExercises SessionExercise[]
+}
+
+model Methodology {
+  id          String @id // clave: fullbody-lineal | ppl | upper-lower | hipertrofia-volumen | calistenia
+  name        String
+  description String
+  config      String // JSON declarativo (estructura, esquemas, progresión, check-ins)
+
+  plans Plan[]
+}
+
+model Plan {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  methodologyId String
+  methodology   Methodology @relation(fields: [methodologyId], references: [id])
+  name          String
+  config        String      @default("{}") // JSON: parámetros del usuario (días, pesos de referencia, semana actual)
+  status        String      @default("active") // active | archived
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  sessions Session[]
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  index            Int // número de sesión dentro del plan (1..n)
+  dayKey           String // clave del día en la metodología, p.ej. "push-A"
+  title            String
+  seed             String // semilla de generación persistida (determinismo)
+  status           String    @default("planned") // planned | in_progress | completed | skipped
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  totalSeconds     Int?
+  effectiveSeconds Int?
+  notes            String?
+  createdAt        DateTime  @default(now())
+
+  exercises SessionExercise[]
+
+  @@index([userId, status])
+}
+
+model SessionExercise {
+  id                 String   @id @default(cuid())
+  sessionId          String
+  session            Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exerciseId         String
+  exercise           Exercise @relation(fields: [exerciseId], references: [id])
+  order              Int
+  role               String // main | secondary | accessory | core
+  pattern            String
+  targetSets         Int
+  targetRepsMin      Int
+  targetRepsMax      Int
+  targetWeightKg     Float?
+  restSeconds        Int
+  tempo              String? // p.ej. "3-1-1" (excéntrica-pausa-concéntrica)
+  mode               String   @default("straight") // straight | emom | amrap | tabata | tut
+  modeSeconds        Int? // duración para emom/amrap/tabata/tut
+  status             String   @default("pending") // pending | done | skipped | substituted
+  substitutedFromId  String? // id de Exercise original si hubo sustitución
+  createdAt          DateTime @default(now())
+
+  setLogs SetLog[]
+
+  @@index([sessionId, order])
+}
+
+model SetLog {
+  id                String          @id @default(cuid())
+  sessionExerciseId String
+  sessionExercise   SessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+  setIndex          Int
+  reps              Int
+  weightKg          Float?
+  rpe               Float?
+  seconds           Int? // para series por tiempo
+  isWarmup          Boolean         @default(false)
+  completedAt       DateTime        @default(now())
+
+  @@index([sessionExerciseId, setIndex])
+}
+
+model CheckIn {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // daily | weekly | mesocycle
+  date      DateTime @default(now())
+  data      String   @default("{}") // JSON: energia, sueno, dolor, pesoKg, medidas, adherencia, rpeMedio...
+  createdAt DateTime @default(now())
+
+  photos ProgressPhoto[]
+
+  @@index([userId, type, date])
+}
+
+model ProgressPhoto {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkInId String?
+  checkIn   CheckIn? @relation(fields: [checkInId], references: [id])
+  takenAt   DateTime @default(now())
+  path      String // ruta en storage privado, servida con auth vía /api/photos
+  pose      String? // frontal | lateral | espalda
+  note      String?
+
+  @@index([userId, takenAt])
+}
+
+model ChatThread {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context   String   @default("global") // global | onboarding | session:<sessionId>
+  createdAt DateTime @default(now())
+
+  messages ChatMessage[]
+
+  @@index([userId, context])
+}
+
+model ChatMessage {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String // user | assistant | tool
+  content   String
+  toolCalls String? // JSON de llamadas a tools ejecutadas
+  createdAt DateTime   @default(now())
+
+  @@index([threadId, createdAt])
+}
