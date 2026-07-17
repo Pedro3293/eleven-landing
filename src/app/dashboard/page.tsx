@@ -1,12 +1,14 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight, Dumbbell, Flame, LineChart } from 'lucide-react';
+import { ChevronRight, Dumbbell, Flame, LineChart, Settings } from 'lucide-react';
 import { getCurrentUserId } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { getActivePlan, parsePlanState } from '@/lib/services/plan-service';
 import { getMethodology } from '@/lib/engine/methodologies';
 import { Card } from '@/components/ui/Card';
 import { StartSessionButton } from '@/components/dashboard/StartSessionButton';
+import { MuscleFigure } from '@/components/three/MuscleFigure';
+import { volumeByMuscleGroup } from '@/lib/services/progress-service';
 
 export const metadata = { title: 'Panel — FORGE' };
 export const dynamic = 'force-dynamic';
@@ -28,17 +30,25 @@ export default async function DashboardPage() {
     where: { userId, status: { in: ['planned', 'in_progress'] } },
     orderBy: { index: 'desc' },
   });
-  const recent = await prisma.session.findMany({
-    where: { userId, status: 'completed' },
-    orderBy: { finishedAt: 'desc' },
-    take: 5,
-  });
+  const [recent, muscleVolume] = await Promise.all([
+    prisma.session.findMany({
+      where: { userId, status: 'completed' },
+      orderBy: { finishedAt: 'desc' },
+      take: 5,
+    }),
+    volumeByMuscleGroup(userId, 2),
+  ]);
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col gap-5 px-4 py-6">
-      <header>
-        <p className="text-sm text-muted">Hola, {profile.displayName}</p>
-        <h1 className="text-2xl font-semibold">Tu entrenamiento</h1>
+      <header className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-muted">Hola, {profile.displayName}</p>
+          <h1 className="text-2xl font-semibold">Tu entrenamiento</h1>
+        </div>
+        <Link href="/settings" aria-label="Ajustes" className="flex h-11 w-11 items-center justify-center rounded-full text-muted active:text-ink">
+          <Settings className="h-5 w-5" />
+        </Link>
       </header>
 
       <Card className="flex flex-col gap-4 border-accent/30">
@@ -60,6 +70,15 @@ export default async function DashboardPage() {
           label={openSession?.status === 'in_progress' ? 'Continuar sesión' : 'Empezar sesión'}
         />
       </Card>
+
+      {muscleVolume.length > 0 && (
+        <section aria-label="Músculos trabajados">
+          <h2 className="mb-2 text-sm font-medium text-muted">Lo que has trabajado · 2 semanas</h2>
+          <Card className="overflow-hidden p-0">
+            <MuscleFigure rows={muscleVolume} />
+          </Card>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <Card className="flex flex-col items-center gap-1 py-4">

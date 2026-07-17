@@ -8,8 +8,11 @@ test('onboarding completo genera plan y permite completar una sesión', async ({
   await page.goto('/');
   await page.getByRole('link', { name: 'Empezar' }).click();
 
-  // Entrevista
-  await page.getByLabel('¿Cómo te llamamos?').fill('Pedro E2E');
+  // Entrevista (reintenta el fill hasta que la página esté hidratada)
+  await expect(async () => {
+    await page.getByLabel('¿Cómo te llamamos?').fill('Pedro E2E');
+    await expect(page.getByRole('button', { name: 'Empezar' })).toBeEnabled({ timeout: 1500 });
+  }).toPass({ timeout: 20_000 });
   await page.getByRole('button', { name: 'Empezar' }).click();
 
   await page.getByRole('button', { name: 'Ganar músculo' }).click();

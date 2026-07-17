@@ -19,6 +19,7 @@ import { ActionsSheet } from './ActionsSheet';
 import { FinishSummary } from './FinishSummary';
 import { useWakeLock } from './useWakeLock';
 import { usePlayerAudio } from './usePlayerAudio';
+import { attachAutoFlush, postWithQueue } from './offline-queue';
 import { formatClock } from './format';
 
 export function Player({ initial }: { initial: SessionDTO }) {
@@ -52,6 +53,9 @@ export function Player({ initial }: { initial: SessionDTO }) {
     return () => clearInterval(id);
   }, [active]);
 
+  // Cola offline: reintenta registros pendientes al recuperar la red
+  useEffect(() => attachAutoFlush(() => void refreshRef.current?.()), []);
+
   // Descanso: cuenta atrás + señales
   useEffect(() => {
     if (!rest) return;
@@ -76,9 +80,15 @@ export function Player({ initial }: { initial: SessionDTO }) {
   const doneCount = exercises.filter((e) => e.status === 'done' || e.status === 'skipped').length;
 
   const refresh = useCallback(async () => {
-    const res = await fetch(`/api/sessions/${session.id}`);
-    if (res.ok) setSession((await res.json()) as SessionDTO);
+    try {
+      const res = await fetch(`/api/sessions/${session.id}`);
+      if (res.ok) setSession((await res.json()) as SessionDTO);
+    } catch {
+      // sin red: el estado optimista local sigue siendo válido
+    }
   }, [session.id]);
+  const refreshRef = useRef<typeof refresh | null>(null);
+  refreshRef.current = refresh;
 
   const logSet = useCallback(
     async (se: SessionExerciseDTO, setIndex: number, data: { reps: number; weightKg: number | null; rpe: number | null; seconds?: number | null }) => {
@@ -103,19 +113,11 @@ export function Player({ initial }: { initial: SessionDTO }) {
         setRest({ remaining: se.restSeconds, total: se.restSeconds });
       }
 
-      await fetch(`/api/session-exercises/${se.id}/sets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ setIndex, ...data }),
-      });
+      const sent = await postWithQueue(`/api/session-exercises/${se.id}/sets`, { setIndex, ...data });
       if (isLastSet) {
-        await fetch(`/api/session-exercises/${se.id}/actions`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'done' }),
-        });
+        await postWithQueue(`/api/session-exercises/${se.id}/actions`, { action: 'done' });
       }
-      await refresh();
+      if (sent) await refresh();
     },
     [refresh],
   );
